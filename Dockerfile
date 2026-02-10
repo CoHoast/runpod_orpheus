@@ -23,7 +23,7 @@ RUN pip install vllm==0.7.3
 # Copy handler
 COPY rp_handler.py /rp_handler.py
 
-# Pre-download model weights to speed up cold starts
-RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('canopylabs/orpheus-tts-0.1-finetune-prod')"
+# Model will download at runtime (first request will be slow)
+# To speed up: add HF_TOKEN env var in RunPod settings
 
 CMD ["python3", "-u", "/rp_handler.py"]
