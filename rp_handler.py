@@ -26,10 +26,7 @@ def initialize_model():
     print("Initializing Orpheus TTS 3B...")
     from orpheus_tts import OrpheusModel
     
-    model = OrpheusModel(
-        model_name="canopylabs/orpheus-tts-0.1-finetune-prod",
-        max_model_len=2048
-    )
+    model = OrpheusModel(model_name="canopylabs/orpheus-tts-0.1-finetune-prod")
     print("Orpheus TTS initialized!")
     return model
 
