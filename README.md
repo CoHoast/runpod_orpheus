@@ -61,3 +61,4 @@ Insert these tags in your text for natural expressions:
 
 - **48GB A40** or **24GB L4** for best performance
 - Model requires ~16-20GB VRAM
+# Trigger rebuild
