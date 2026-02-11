@@ -5,7 +5,7 @@ Apache 2.0 Licensed - Commercial Use OK
 Supports:
 - 8 English voices: tara, leah, jess, leo, dan, mia, zac, zoe
 - Expressive tags: <laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>
-- Voice cloning from reference audio
+- Voice cloning from reference audio (10-30 seconds WAV)
 """
 
 import runpod
@@ -14,6 +14,7 @@ import base64
 import wave
 import io
 import time
+import tempfile
 
 # Initialize model globally
 model = None
@@ -62,21 +63,49 @@ def handler(event):
         top_p = float(input_data.get('top_p', 0.95))
         repetition_penalty = float(input_data.get('repetition_penalty', 1.1))
         
-        print(f"Generating with voice '{voice}': {text[:80]}...")
+        # Voice cloning: base64 encoded WAV audio (10-30 seconds recommended)
+        audio_prompt_base64 = input_data.get('audio_prompt_base64')
         
         # Initialize model if needed
         initialize_model()
         
         start_time = time.time()
+        audio_prompt_path = None
         
-        # Generate speech
-        audio_chunks = list(model.generate_speech(
-            prompt=text,
-            voice=voice,
-            temperature=temperature,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty
-        ))
+        try:
+            if audio_prompt_base64:
+                # Voice cloning mode
+                print(f"Voice cloning mode - generating: {text[:80]}...")
+                
+                # Save reference audio to temp file
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
+                    tmp.write(base64.b64decode(audio_prompt_base64))
+                    audio_prompt_path = tmp.name
+                
+                # Format prompt with voice prefix for cloning
+                prompt = f"{voice}: {text}"
+                
+                # Generate with voice cloning
+                audio_chunks = list(model.generate_with_voice_clone(
+                    prompt=prompt,
+                    audio_ref=audio_prompt_path
+                ))
+            else:
+                # Standard voice mode
+                print(f"Generating with voice '{voice}': {text[:80]}...")
+                
+                # Generate speech
+                audio_chunks = list(model.generate_speech(
+                    prompt=text,
+                    voice=voice,
+                    temperature=temperature,
+                    top_p=top_p,
+                    repetition_penalty=repetition_penalty
+                ))
+        finally:
+            # Clean up temp file
+            if audio_prompt_path and os.path.exists(audio_prompt_path):
+                os.unlink(audio_prompt_path)
         
         generation_time = time.time() - start_time
         
@@ -90,6 +119,7 @@ def handler(event):
             "audio_base64": audio_base64,
             "sample_rate": 24000,
             "voice": voice,
+            "cloned": audio_prompt_base64 is not None,
             "generation_time_ms": int(generation_time * 1000)
         }
         
